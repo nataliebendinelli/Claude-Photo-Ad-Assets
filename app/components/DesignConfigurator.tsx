@@ -46,8 +46,51 @@ const AIContentGenerator: React.FC<{
   onContentGenerated: (content: GeneratedContent) => void;
   isGenerating: boolean;
 }> = ({ profile, industry, role, onContentGenerated, isGenerating }) => {
+  const [error, setError] = React.useState<string | null>(null);
+  const [isLoading, setIsLoading] = React.useState(false);
   
-  const generateContent = () => {
+  const generateContent = async () => {
+    setError(null);
+    setIsLoading(true);
+    
+    try {
+      // Call the API route
+      const response = await fetch('/api/generate-content', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          profile,
+          industry,
+          role
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate content');
+      }
+
+      // If using fallback content, notify user
+      if (data.fallback) {
+        setError('Using offline content. Add OpenAI API key for AI-generated content.');
+      }
+
+      onContentGenerated(data);
+    } catch (err) {
+      console.error('Error generating content:', err);
+      setError(err instanceof Error ? err.message : 'Failed to generate content');
+      
+      // Fallback to original hardcoded content generation
+      generateContentFallback();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const generateContentFallback = () => {
     // Simulate AI content generation based on profile
     const profileData = {
       small: {
@@ -367,19 +410,19 @@ const AIContentGenerator: React.FC<{
       <div className="flex items-center justify-between mb-3">
         <h4 className="font-semibold text-blue-900 flex items-center gap-2">
           <Sparkles className="w-5 h-5" />
-          AI Content Generator
+          AI Content Generator (Powered by ChatGPT)
         </h4>
         <button
           onClick={generateContent}
-          disabled={isGenerating}
+          disabled={isGenerating || isLoading}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 text-sm font-medium"
         >
-          {isGenerating ? (
+          {(isGenerating || isLoading) ? (
             <RefreshCw className="w-4 h-4 animate-spin" />
           ) : (
             <Wand2 className="w-4 h-4" />
           )}
-          {isGenerating ? 'Generating...' : 'Generate Content'}
+          {(isGenerating || isLoading) ? 'Generating...' : 'Generate AI Content'}
         </button>
       </div>
       
@@ -387,8 +430,19 @@ const AIContentGenerator: React.FC<{
         Generate targeted messaging for <strong>{profile}</strong> business <strong>{role}</strong> in <strong>{industry.replace(/_/g, ' ')}</strong>
       </p>
       
+      {error && (
+        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm rounded p-2 mb-3">
+          ⚠️ {error}
+        </div>
+      )}
+      
       <div className="bg-white rounded p-3 text-xs text-gray-600">
-        <strong>AI will create:</strong> Targeted headlines, pain points, benefits, and CTAs specifically crafted for your selected customer profile and industry.
+        <strong>AI will create:</strong> Real-time AI-generated headlines, pain points, benefits, and CTAs using ChatGPT, specifically crafted for your selected customer profile and industry.
+        {!process.env.NEXT_PUBLIC_OPENAI_CONFIGURED && (
+          <div className="mt-2 text-orange-600">
+            <strong>Note:</strong> Add your OpenAI API key to enable AI generation.
+          </div>
+        )}
       </div>
     </div>
   );
