@@ -24,7 +24,7 @@ export default function Home() {
             <div className="aspect-square bg-gradient-to-br from-blue-900 to-blue-600 rounded flex items-center justify-center">
               <div className="text-white text-center">
                 <h3 className="text-3xl font-bold mb-2">ACCRUE</h3>
-                <p className="text-lg">Now you know it's right.™</p>
+                <p className="text-lg">Now you know it&apos;s right.™</p>
               </div>
             </div>
           </div>
